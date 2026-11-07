@@ -43,9 +43,12 @@ Electron runtime and the app are already packed inside, just unpack and launch:
 |---|---|---|
 | `ZVoice-Studio-<version>-linux-x64.zip` | Linux 64-bit | `chmod +x launch.sh && ./launch.sh` |
 | `ZVoice-Studio-<version>-win64.zip` | Windows 64-bit | double-click `launch.bat` |
+| `ZVoice-Studio-<version>-macos-arm64.zip` | macOS Apple Silicon | `chmod +x launch.sh && ./launch.sh` |
+| `ZVoice-Studio-<version>-macos-x64.zip` | macOS Intel | `chmod +x launch.sh && ./launch.sh` |
 
-No installation required. macOS: grab the source (or clone the repo) and use
-the one-time setup below — `setup-desktop.sh` supports Apple Silicon and Intel.
+No installation required. **macOS note:** the app is unsigned, so macOS may block
+the first launch — run `xattr -cr ZVoice-Studio` from the unpacked folder once
+(or right-click → Open).
 
 ## Quick start
 

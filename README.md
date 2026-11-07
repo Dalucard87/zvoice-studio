@@ -64,6 +64,15 @@ dictation · anyone who just wants a working recorder *with* processing.
 | Project files | **ZIP written from scratch** (STORE method) + 24-bit **WAV** encoder — `project.json` + one WAV per item |
 | Persistence | **IndexedDB + File System Access API** — remembers your project folder |
 
+## Built with AI assistance
+
+ZVoice Studio was created by **Dalucard87** together with an AI coding agent
+(ZCode, powered by GLM) in a human-directed workflow: the human set the product
+vision, made every design and feature decision, tested each build and owns the
+releases — the AI wrote and refactored the code under that direction.
+All third-party components (RNNoise, Electron, etc.) are properly licensed and
+credited below.
+
 ## Download
 
 Ready-to-run bundles are published on the
@@ -178,5 +187,6 @@ desktop/              — Electron shell (window + permission-free microphone)
 
 ## License
 
-[GNU GPL v3](LICENSE). All application code is written from scratch.
+Copyright (C) 2026 **Dalucard87** — [GNU GPL v3](LICENSE).
+All application code is written from scratch.
 Electron is distributed under its own MIT license.

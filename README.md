@@ -33,6 +33,20 @@ Runs fully offline. No accounts, no cloud, no telemetry.
 | Project files | **ZIP written from scratch** (STORE method) + 24-bit **WAV** encoder — `project.json` + one WAV per item |
 | Persistence | **IndexedDB + File System Access API** — remembers your project folder |
 
+## Download
+
+Ready-to-run bundles are published on the
+[**Releases page**](https://github.com/Dalucard87/zvoice-studio/releases/latest) —
+Electron runtime and the app are already packed inside, just unpack and launch:
+
+| File | OS | Run |
+|---|---|---|
+| `ZVoice-Studio-<version>-linux-x64.zip` | Linux 64-bit | `chmod +x launch.sh && ./launch.sh` |
+| `ZVoice-Studio-<version>-win64.zip` | Windows 64-bit | double-click `launch.bat` |
+
+No installation required. macOS: grab the source (or clone the repo) and use
+the one-time setup below — `setup-desktop.sh` supports Apple Silicon and Intel.
+
 ## Quick start
 
 ### Web version — all platforms (Python 3 + any Chromium-based browser)

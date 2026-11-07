@@ -7,7 +7,10 @@ const path = require('path');
 
 app.setName('zvoice-studio');
 
-const ROOT = path.resolve(__dirname, '..', '..'); // папка zvoice-studio с index.html
+// папка с index.html: в репозитории — на два уровня выше (desktop/app → корень),
+// в готовом бандле app/ лежит на уровень ниже — проверяем оба варианта
+let ROOT = path.resolve(__dirname, '..', '..');
+if (!fs.existsSync(path.join(ROOT, 'index.html'))) ROOT = path.resolve(__dirname, '..');
 const LOG = path.join(__dirname, 'app.log');
 const log = (msg) => { try { fs.appendFileSync(LOG, new Date().toISOString() + ' ' + msg + '\n'); } catch {} };
 

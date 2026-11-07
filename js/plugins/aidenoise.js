@@ -25,7 +25,7 @@ fetchWasm(); // старт при загрузке страницы
 
 const params = [
   { id: 'amount', name: 'Сила', nameEn: 'Amount', min: 0, max: 100, def: 100, fmt: 'pct' },
-  { id: 'gate', name: 'Гейт голоса', nameEn: 'Voice Gate', min: 0, max: 100, def: 60, fmt: 'pct' },
+  { id: 'gate', name: 'Гейт голоса', nameEn: 'Voice Gate', min: 0, max: 100, def: 0, fmt: 'pct' },
   { id: 'outGainDb', name: 'Выход', nameEn: 'Output', min: -18, max: 6, def: 0, fmt: 'db' },
   { id: 'bypass', name: 'Байпас', nameEn: 'Bypass', kind: 'toggle', def: 0 },
 ];

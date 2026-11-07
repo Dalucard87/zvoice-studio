@@ -2,6 +2,9 @@
 // Модуль .wasm компилируется на main-потоке и приходит через processorOptions
 // (или postMessage — fallback). RNNoise работает на 48 кГц/480 сэмплов,
 // поэтому вокруг ядра: ресемплинг ± авто-нормализация уровня ± свой гейт.
+//
+// Транспорт: очереди-кольца степени двойки со СЧЁТЧИКАМИ занятости —
+// переполнение безопасно (дроп старых), арифметика не «перегоняется».
 
 // ── обёртка над wasm ────────────────────────────────────────────────────
 function rnnoiseInstantiate(mod) {
@@ -14,7 +17,6 @@ function rnnoiseInstantiate(mod) {
   const X = inst.exports;
   const memory = X.memory || (X.c && X.c instanceof WebAssembly.Memory ? X.c : null);
   const mem = () => memory.buffer;
-  const u8 = () => new Uint8Array(mem());
   X.rnnoise_get_size && X.rnnoise_get_size();
   const st = X.rnnoise_create(0);
   if (!st) return null;
@@ -37,6 +39,7 @@ function rnnoiseInstantiate(mod) {
 const FS = 480;              // 480 сэмплов @ 48 кГц (внутренняя частота rnnoise)
 const RATE = 48000;
 const TARGET_RMS = 0.5;      // рабочая зона нейросети (эмпирически: ≥0.45)
+const QSIZE = 16384, QMASK = QSIZE - 1;
 
 class AiDenoiseProcessor extends AudioWorkletProcessor {
   constructor(options) {
@@ -46,16 +49,13 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
     this.core = null;           // rnnoise-обёртка
     this.failed = false;
 
-    // 48 кГц ↔ частота контекста: два линейных ресемплера
     this.ratioIn = sampleRate / RATE;   // шаг по исходнику на один сэмпл 48к
     this.ratioOut = RATE / sampleRate;
 
-    // вход (частота контекста, моно)
-    this.inFifo = new Float32Array(65536); this.iw = 0; this.ir = 0;
-    // 48 кГц поток до/после ядра
-    this.mid = new Float32Array(FS + 8); this.midN = 0;          // нормализованный кадр
-    this.mid48 = new Float32Array(65536); this.mw = 0; this.mr = 0;   // 48к вход (после ресемпла)
-    this.out48 = new Float32Array(65536); this.ow = 0; this.or = 0;   // 48к выход (до ресемпла)
+    // три очереди: вход контекста (моно) → поток 48к до ядра → выход 48к
+    this.iq = new Float32Array(QSIZE); this.iqR = 0; this.iqW = 0; this.iqN = 0;
+    this.mq = new Float32Array(QSIZE); this.mqR = 0; this.mqW = 0; this.mqN = 0;
+    this.oq = new Float32Array(QSIZE); this.oqR = 0; this.oqW = 0; this.oqN = 0;
 
     this.srcPos = 0;  // фракционная позиция ресемплера in→48k
     this.dstPos = 0;  // фракционная позиция ресемплера 48k→ctx
@@ -65,6 +65,8 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
     this.gateGain = 1;    // сглаженный гейт
     this.grSmooth = 0;
     this.block = 0;
+    this.frame = new Float32Array(FS);
+    this.tmpOut = new Float32Array(FS);
 
     this.port.onmessage = (e) => {
       const d = e.data;
@@ -78,98 +80,103 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
     if (mod) { try { this.core = rnnoiseInstantiate(mod); } catch { this.failed = true; } }
   }
 
-  // ---- ресемплер in→48k: выдаёт доступные сэмплы 48к из inFifo -------------
-  _resampleIn() {
-    const { inFifo, mid48 } = this;
-    const avail = (this.iw - this.ir + inFifo.length) % inFifo.length;
-    if (avail < 2) return;
-    let pos = this.srcPos;
-    while (pos + 1 < avail) {
-      const i0 = (this.ir + Math.floor(pos)) % inFifo.length;
-      const i1 = (i0 + 1) % inFifo.length;
-      const f = pos - Math.floor(pos);
-      mid48[this.mw] = inFifo[i0] * (1 - f) + inFifo[i1] * f;
-      this.mw = (this.mw + 1) % mid48.length;
-      pos += this.ratioIn;
-    }
-    this.ir = (this.ir + Math.floor(pos)) % inFifo.length;
-    this.srcPos = pos - Math.floor(pos);
-  }
-  // ---- ресемплер 48k→ctx --------------------------------------------------
-  _resampleOut(n, out) {
-    const { out48 } = this;
-    const avail = (this.ow - this.or + out48.length) % out48.length;
-    let produced = 0;
-    let pos = this.dstPos;
-    while (produced < n && pos + 1 < avail) {
-      const i0 = (this.or + Math.floor(pos)) % out48.length;
-      const i1 = (i0 + 1) % out48.length;
-      const f = pos - Math.floor(pos);
-      out[produced] = out48[i0] * (1 - f) + out48[i1] * f;
-      produced++;
-      pos += this.ratioOut;
-    }
-    this.or = (this.or + Math.floor(pos)) % out48.length;
-    this.dstPos = pos - Math.floor(pos);
-    return produced;
+  _clearQueues() {
+    this.iqN = this.mqN = this.oqN = 0;
+    this.iqR = this.iqW = this.mqR = this.mqW = this.oqR = this.oqW = 0;
+    this.srcPos = this.dstPos = 0;
   }
 
   process(inputs, outputs) {
     const inp = inputs[0], out = outputs[0];
     const frames = out[0].length;
     const inCh = inp && inp.length ? inp[0] : null;
-
-    // моно-вход в fifo
-    if (inCh) {
-      for (let i = 0; i < frames; i++) {
-        this.inFifo[this.iw] = inCh[i];
-        this.iw = (this.iw + 1) % this.inFifo.length;
-      }
-    } else {
-      for (let i = 0; i < frames; i++) {
-        this.inFifo[this.iw] = 0;
-        this.iw = (this.iw + 1) % this.inFifo.length;
-      }
-    }
-    this._resampleIn();
-
-    // кадры по 480
-    const frame = new Float32Array(FS);
-    while ((this.mw - this.mr + this.mid48.length) % this.mid48.length >= FS) {
-      for (let i = 0; i < FS; i++) {
-        frame[i] = this.mid48[this.mr];
-        this.mr = (this.mr + 1) % this.mid48.length;
-      }
-      this._processFrame(frame);
-    }
-
-    // выгрузка на частоте контекста + mix/gain
     const p = this.p;
+
+    if (!inCh) {                       // вход не подключён — тишина, очереди чистим
+      for (let ch = 0; ch < out.length; ch++) out[ch].fill(0);
+      if ((this.block++ & 63) === 0) this._clearQueues();
+      return true;
+    }
+
+    // 1) моно-вход в очередь
+    for (let i = 0; i < frames; i++) {
+      this.iq[this.iqW] = inCh[i];
+      this.iqW = (this.iqW + 1) & QMASK;
+      this.iqN++;
+    }
+    if (this.iqN > QSIZE - 256) {      // переполнение: дропаем самый старый блок
+      const drop = this.iqN - (QSIZE - 256);
+      this.iqR = (this.iqR + drop) & QMASK;
+      this.iqN -= drop;
+    }
+
+    // 2) вход → 48 кГц (линейная интерполяция по дробной позиции)
+    let pos = this.srcPos;
+    while (pos + 1 < this.iqN && this.mqN < QSIZE - 256) {
+      const i0 = (this.iqR + Math.floor(pos)) & QMASK;
+      const i1 = (i0 + 1) & QMASK;
+      const f = pos - Math.floor(pos);
+      this.mq[this.mqW] = this.iq[i0] * (1 - f) + this.iq[i1] * f;
+      this.mqW = (this.mqW + 1) & QMASK;
+      this.mqN++;
+      pos += this.ratioIn;
+    }
+    const consumed = Math.floor(pos);
+    this.iqR = (this.iqR + consumed) & QMASK;
+    this.iqN -= consumed;
+    this.srcPos = pos - consumed;
+
+    // 3) кадры по 480 → ядро
+    while (this.mqN >= FS) {
+      for (let i = 0; i < FS; i++) {
+        this.frame[i] = this.mq[this.mqR];
+        this.mqR = (this.mqR + 1) & QMASK;
+      }
+      this.mqN -= FS;
+      this._processFrame();
+    }
+
+    // 4) выход 48 кГц → частота контекста + mix/gain
     const amount = p.amount / 100, gate = p.gate / 100;
     const wet = p.bypass ? 0 : amount;
     const dry = 1 - wet;
     const og = Math.pow(10, p.outGainDb / 20);
-    const tmp = new Float32Array(frames);
-    const got = this._resampleOut(frames, tmp);
+    let opos = this.dstPos;
     for (let i = 0; i < frames; i++) {
-      const w = i < got ? tmp[i] : 0;
+      let w = 0;
+      if (opos < this.oqN) {
+        const j0 = (this.oqR + Math.floor(opos)) & QMASK;
+        const j1 = (j0 + 1) & QMASK;
+        const f = opos - Math.floor(opos);
+        w = this.oq[j0] * (1 - f) + this.oq[j1] * f;
+      }
+      opos += this.ratioOut;
       for (let ch = 0; ch < out.length; ch++) {
-        const srcCh = inCh ? inp[Math.min(ch, inp.length - 1)] : null;
+        const srcCh = inp[Math.min(ch, inp.length - 1)];
         const d = srcCh ? srcCh[i] : 0;
         out[ch][i] = p.bypass ? d : (d * dry + w * wet) * og;
       }
     }
+    const oConsumed = Math.floor(opos);
+    this.oqR = (this.oqR + oConsumed) & QMASK;
+    this.oqN -= oConsumed;
+    this.dstPos = opos - oConsumed;
+    if (this.oqN > QSIZE - 256) {      // страховка от накопления на паузах
+      const drop = this.oqN - (QSIZE - 256);
+      this.oqR = (this.oqR + drop) & QMASK;
+      this.oqN -= drop;
+    }
 
     if ((this.block++ & 7) === 0) {
-      const gr = this.grSmooth;
       const envDb = 20 * Math.log10(Math.max(this.noiseFloor, 1e-4));
-      this.port.postMessage({ type: 'meter', gr: +gr.toFixed(1), env: +envDb.toFixed(1), gate: this.gateGain });
+      this.port.postMessage({ type: 'meter', gr: +this.grSmooth.toFixed(1), env: +envDb.toFixed(1), gate: this.gateGain });
     }
     return true;
   }
 
-  _processFrame(frame) {
+  _processFrame() {
     const p = this.p;
+    const frame = this.frame;
     let rms = 0;
     for (let i = 0; i < FS; i++) rms += frame[i] * frame[i];
     rms = Math.sqrt(rms / FS);
@@ -177,13 +184,13 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
     let wetFrame;
     if (!this.core || this.failed || p.bypass) {
       wetFrame = frame; // passthrough
-      this.grSmooth = this.grSmooth * 0.9 + 0 * 0.1;
+      this.grSmooth = this.grSmooth * 0.9;
     } else {
       // авто-нормализация уровня в рабочую зону нейросети
       let g = rms > 1e-5 ? TARGET_RMS / rms : 1;
       if (g > 16) g = 16; else if (g < 0.0625) g = 0.0625;
       this.gsm = this.gsm + 0.5 * (g - this.gsm);
-      const norm = new Float32Array(FS);
+      const norm = this.tmpOut;
       for (let i = 0; i < FS; i++) norm[i] = frame[i] * this.gsm;
       const den = new Float32Array(FS);
       this.core.frame(norm, den);
@@ -191,7 +198,7 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
       for (let i = 0; i < FS; i++) den[i] *= inv;
       wetFrame = den;
 
-      // уровень давки для метра (по сглаженному кадру)
+      // уровень давки для метра
       let or2 = 0;
       for (let i = 0; i < FS; i++) or2 += den[i] * den[i];
       const orRms = Math.sqrt(or2 / FS);
@@ -199,19 +206,24 @@ class AiDenoiseProcessor extends AudioWorkletProcessor {
       this.grSmooth = this.grSmooth * 0.7 + Math.min(gr, 0) * 0.3;
     }
 
-    // свой гейт по полу шума: мин-трекинг RMS
-    const k = Math.exp(-FS / RATE / 1.2);      // ~1.2 c спуск пола
-    if (this.noiseFloor === 0) this.noiseFloor = rms;
-    this.noiseFloor = Math.min(this.noiseFloor * k, rms);
+    // свой гейт по полу шума: мгновенный мин-трекинг вниз, медленный вверх
+    if (rms < this.noiseFloor || this.noiseFloor === 0) this.noiseFloor = rms;
+    else this.noiseFloor += (rms - this.noiseFloor) * 0.02;   // вверх ~2%/кадр
     const ratio = rms / Math.max(this.noiseFloor, 1e-6);
-    const wantOpen = gate <= 0 || ratio >= (1 + 5 * gate);
+    const wantOpen = p.gate <= 0 || ratio >= (1 + 2.5 * p.gate);
     const target = wantOpen ? 1 : 0;
     this.gateGain += (target - this.gateGain) * (target > this.gateGain ? 0.5 : 0.06);
 
-    const { out48 } = this;
+    const { oq } = this;
     for (let i = 0; i < FS; i++) {
-      out48[this.ow] = wetFrame[i] * this.gateGain;
-      this.ow = (this.ow + 1) % out48.length;
+      oq[this.oqW] = wetFrame[i] * this.gateGain;
+      this.oqW = (this.oqW + 1) & QMASK;
+    }
+    this.oqN += FS;
+    if (this.oqN > QSIZE - 256) {      // дроп старых при переполнении
+      const drop = this.oqN - (QSIZE - 256);
+      this.oqR = (this.oqR + drop) & QMASK;
+      this.oqN -= drop;
     }
   }
 }

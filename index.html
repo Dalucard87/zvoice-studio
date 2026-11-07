@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZVoice Studio — запись и обработка голоса</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ======================= Верхняя панель ======================= -->
+  <header id="topbar">
+    <div class="brand">ZVoice<span>Studio</span></div>
+
+    <div class="transport">
+      <button id="btn-home"  data-i18n-title="tip.home">⏮</button>
+      <button id="btn-play"  data-i18n-title="tip.play">▶</button>
+      <button id="btn-stop"  data-i18n-title="tip.stop">■</button>
+      <button id="btn-loop"  data-i18n-title="tip.loop">🔁</button>
+      <button id="btn-record" data-i18n-title="tip.record">⏺</button>
+    </div>
+
+    <div class="timecode" id="timecode">00:00.000</div>
+
+    <div class="master">
+      <canvas id="master-meter" width="120" height="30" title=""></canvas>
+      <canvas id="spectrum" width="150" height="30" title=""></canvas>
+    </div>
+
+    <div class="right">
+      <label class="toggle" id="monitor-wrap" data-i18n-title="tip.monitor">
+        <input type="checkbox" id="chk-monitor"><span data-i18n="monitor">Мониторинг</span>
+      </label>
+      <select id="device-select" title=""></select>
+      <button id="btn-bypass-all" data-i18n-title="tip.bypass">BYPASS</button>
+      <button id="btn-import" data-i18n="imp" data-i18n-title="tip.imp">📂 Импорт</button>
+      <button id="btn-export" data-i18n="exp" data-i18n-title="tip.exp">💾 Экспорт WAV</button>
+      <button id="btn-settings" data-i18n-title="tip.settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- ======================= Панель редактирования ======================= -->
+  <div id="edit-toolbar">
+    <button id="btn-undo"  data-i18n="tb.undo" data-i18n-title="tip.undo">↶ Отменить</button>
+    <button id="btn-redo"  data-i18n="tb.redo" data-i18n-title="tip.redo">↷ Повторить</button>
+    <span class="sep"></span>
+    <button id="btn-cut"   data-i18n="tb.cut" data-i18n-title="tip.cut">✂ Вырезать</button>
+    <button id="btn-copy"  data-i18n="tb.copy" data-i18n-title="tip.copy">⧉ Копировать</button>
+    <button id="btn-paste" data-i18n="tb.paste" data-i18n-title="tip.paste">⎘ Вставить</button>
+    <button id="btn-del"   data-i18n="tb.del" data-i18n-title="tip.del">✕ Удалить</button>
+    <button id="btn-silence" data-i18n="tb.silence" data-i18n-title="tip.silence">Тишина</button>
+    <span class="sep"></span>
+    <button id="btn-trim"  data-i18n="tb.trim" data-i18n-title="tip.trim">Обрезать</button>
+    <button id="btn-split" data-i18n="tb.split" data-i18n-title="tip.split">Разделить</button>
+    <button id="btn-merge" data-i18n="tb.merge" data-i18n-title="tip.merge">Склеить</button>
+    <button id="btn-fadein"  data-i18n="tb.fadein" data-i18n-title="tip.fadein">↘ Фейд-ин</button>
+    <button id="btn-fadeout" data-i18n="tb.fadeout" data-i18n-title="tip.fadeout">↗ Фейд-аут</button>
+    <button id="btn-norm"  data-i18n="tb.norm" data-i18n-title="tip.norm">Нормализовать</button>
+    <span class="sep"></span>
+    <button id="btn-selall" data-i18n="tb.all" data-i18n-title="tip.all">Всё</button>
+    <button id="btn-selnone" data-i18n="tb.none" data-i18n-title="tip.none">Снять</button>
+    <span class="sep"></span>
+    <button id="btn-zoom-in"  data-i18n-title="tip.zoomin">＋</button>
+    <button id="btn-zoom-out" data-i18n-title="tip.zoomout">－</button>
+    <button id="btn-zoom-fit" data-i18n-title="tip.zoomfit">⤢</button>
+  </div>
+
+  <!-- ======================= Таймлайн: дорожки ======================= -->
+  <section id="timeline">
+    <div id="track-strip">
+      <div class="strip-spacer" data-i18n="tracks">Дорожки</div>
+      <div id="track-rows"></div>
+      <button id="track-add" class="accent" data-i18n="addTrack" data-i18n-title="tip.addTrack">＋ Дорожка</button>
+    </div>
+    <div id="wave-area">
+      <canvas id="ruler"></canvas>
+      <div id="wave-scroll">
+        <canvas id="wave"></canvas>
+        <div id="playhead" hidden></div>
+      </div>
+    </div>
+    <div id="wave-empty" data-i18n="dropHint">Перетащи сюда аудиофайл — станет новой дорожкой · или жми ⏺</div>
+  </section>
+
+  <!-- ======================= Плавающее окно FX (как в Reaper) ======================= -->
+  <div id="fxwin" hidden>
+    <div id="fxwin-head">
+      <span class="fxwin-title" id="fxwin-title">FX</span>
+      <button id="fxwin-close" data-i18n-title="tip.fx.close">✕</button>
+    </div>
+    <div id="fxwin-body">
+      <div id="fxwin-list-pane">
+        <div class="fxwin-list-tools">
+          <select id="preset-select" title=""></select>
+          <button id="fx-add" class="accent" data-i18n="fx.add" data-i18n-title="tip.fx.add">＋</button>
+          <button id="fx-save" data-i18n-title="tip.fx.save">⬇</button>
+        </div>
+        <div id="fx-list"></div>
+      </div>
+      <div id="fxwin-editor">
+        <div id="fx-editor-empty" data-i18n="fx.pick">Выбери плагин слева — его настройки появятся здесь</div>
+        <div id="fx-editor-body"></div>
+      </div>
+    </div>
+    <div id="fxwin-resize"></div>
+  </div>
+
+  <!-- ======================= Диалог настроек ======================= -->
+  <div id="settings-dlg" hidden>
+    <div class="dlg-box">
+      <div class="dlg-head">
+        <span data-i18n="dlg.title">Настройки</span>
+        <button id="dlg-close">✕</button>
+      </div>
+      <div class="dlg-body">
+        <div class="dlg-sec" data-i18n="dlg.appearance">Внешний вид</div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.lang">Язык интерфейса</span>
+          <select id="set-lang">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.theme">Тема</span>
+          <select id="set-theme">
+            <option value="dark" data-i18n="theme.dark">Тёмная</option>
+            <option value="black" data-i18n="theme.black">Чёрная (OLED)</option>
+            <option value="mid" data-i18n="theme.mid">Полуночная</option>
+          </select>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.accent">Акцентный цвет</span>
+          <div class="swatches" id="set-accent">
+            <button class="sw sel" data-c="" style="background:#ff9f43" data-i18n-title="dlg.accent.def"></button>
+            <button class="sw" data-c="#43d6b5" style="background:#43d6b5"></button>
+            <button class="sw" data-c="#7aa2f7" style="background:#7aa2f7"></button>
+            <button class="sw" data-c="#f7768e" style="background:#f7768e"></button>
+            <button class="sw" data-c="#e0af68" style="background:#e0af68"></button>
+            <button class="sw" data-c="#bb9af7" style="background:#bb9af7"></button>
+            <button class="sw" data-c="#9ece6a" style="background:#9ece6a"></button>
+            <button class="sw" data-c="#ff5252" style="background:#ff5252"></button>
+            <input type="color" id="set-accent-custom" value="#ff9f43" title="RGB">
+          </div>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.scale">Масштаб интерфейса</span>
+          <label class="slider-row"><input type="range" id="set-scale" min="85" max="125" step="5" value="100"><b id="set-scale-val">100%</b></label>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.laneH">Высота дорожек</span>
+          <label class="slider-row"><input type="range" id="set-laneh" min="64" max="128" step="8" value="96"><b id="set-laneh-val">96 px</b></label>
+        </div>
+
+        <div class="dlg-sec" data-i18n="dlg.behavior">Поведение</div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.overdub">Играть остальные дорожки при записи (овердаб)</span>
+          <div class="ff-switch on" id="set-overdub"><span class="sw"></span></div>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.follow">Следовать за плейхедом при воспроизведении</span>
+          <div class="ff-switch on" id="set-follow"><span class="sw"></span></div>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.confirmDel">Спрашивать подтверждение при удалении дорожки</span>
+          <div class="ff-switch on" id="set-confirmdel"><span class="sw"></span></div>
+        </div>
+
+        <div class="dlg-sec" data-i18n="dlg.hotkeys">Горячие клавиши</div>
+        <div class="dlg-note" data-i18n="hk.tip">Клик — переназначить, ✕ — отключить</div>
+        <div id="hk-list"></div>
+        <div class="dlg-actions" style="border-top:none;padding-top:0">
+          <button id="hk-reset" class="ff-btn" data-i18n="hk.reset">Сбросить горячие клавиши</button>
+        </div>
+
+        <div class="dlg-sec" data-i18n="dlg.projects">Проекты</div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.projdir">Папка проектов</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span class="ff-note" id="proj-dir-name">—</span>
+            <button id="pick-dir" class="ff-btn" data-i18n="dlg.pickdir">Выбрать…</button>
+          </span>
+        </div>
+
+        <div class="dlg-sec" data-i18n="dlg.out">Устройство вывода</div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.out">Устройство вывода</span>
+          <select id="set-sink"></select>
+        </div>
+        <div class="dlg-row">
+          <span data-i18n="dlg.mastervol">Громкость выхода</span>
+          <label class="slider-row"><input type="range" id="set-mvol" min="0" max="150" step="5" value="100"><b id="set-mvol-val">100%</b></label>
+        </div>
+
+        <div class="dlg-actions">
+          <button id="set-reset" class="ff-btn" data-i18n="dlg.reset">Сбросить настройки</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= Статусная строка ======================= -->
+  <footer id="statusbar">
+    <span id="st-sample">—</span>
+    <span id="st-hint">Пробел — плей/стоп · R — запись в дорожку · клик по дорожке — выбрать · колесо — зум</span>
+  </footer>
+</div>
+
+<input type="file" id="file-input" accept="audio/*" hidden>
+<input type="file" id="proj-input" accept=".zip,.zvproj" hidden>
+<div id="toast" hidden></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

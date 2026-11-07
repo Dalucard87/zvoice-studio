@@ -1,0 +1,7 @@
+{
+  "name": "zvoice-studio",
+  "productName": "ZVoice Studio",
+  "version": "1.0.0",
+  "description": "Запись и обработка голоса с реалтайм-плагинами",
+  "main": "main.js"
+}

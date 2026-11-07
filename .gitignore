@@ -1,0 +1,11 @@
+# Electron-рантайм скачивается отдельно (setup-desktop.sh)
+desktop/electron/
+desktop/electron.zip
+
+# логи и локальный мусор
+*.log
+desktop/app/app.log
+.DS_Store
+
+# временные файлы
+*.tmp

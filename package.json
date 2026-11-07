@@ -1,0 +1,18 @@
+{
+  "name": "zvoice-studio",
+  "productName": "ZVoice Studio",
+  "version": "0.1.0",
+  "description": "Multitrack voice recorder with real-time FX chains — a free Reaper-flavoured voice studio",
+  "license": "GPL-3.0-or-later",
+  "author": "ZVoice Studio contributors",
+  "repository": {
+    "type": "git"
+  },
+  "scripts": {
+    "web": "python3 server.py 8765",
+    "desktop": "./desktop/launch.sh"
+  },
+  "engines": {
+    "python": ">=3.8"
+  }
+}

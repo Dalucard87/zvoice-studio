@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# ZVoice Studio — запуск десктоп-приложения
+# ZVoice Studio — desktop launcher (Linux + macOS)
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ ! -x "$DIR/electron/electron" ]; then
-  echo "Electron не найден. Выполни один раз:"
-  echo "  $DIR/setup-desktop.sh"
-  exit 1
+if [ -x "$DIR/electron/electron" ]; then
+  exec "$DIR/electron/electron" "$DIR/app" "$@"
+fi
+if [ -x "$DIR/electron/Electron.app/Contents/MacOS/Electron" ]; then
+  exec "$DIR/electron/Electron.app/Contents/MacOS/Electron" "$DIR/app" "$@"
 fi
 
-exec "$DIR/electron/electron" "$DIR/app" "$@"
+echo "Electron is not installed. Run once:"
+echo "  $DIR/setup-desktop.sh"
+exit 1

@@ -1,70 +1,117 @@
 # ZVoice Studio
 
-Бесплатная мультидорожечная студия для записи и обработки голоса с
-Realtime-цепочками эффектов — интерфейс в духе Reaper и FabFilter.
-Работает локально, без аккаунтов и облаков.
+Free multitrack voice recorder with **real-time FX chains** — a lightweight DAW for
+voice work with a Reaper-style workflow and FabFilter-style plugin panels.
+Runs fully offline. No accounts, no cloud, no telemetry.
 
 ![ZVoice Studio](docs/screenshot.png)
 
-## Возможности
+## Features
 
-- **Запись** с любого микрофона в выбранную дорожку (панч-запись: выделение → ⏺ → перезапись куска)
-- **Айтемы как в Reaper**: каждая запись/импорт — отдельный клип на дорожке; двигается мышкой, переносится между дорожками, режется (Split) и склеивается (Glue)
-- **11 Realtime-плагинов** с дисплеями (спектр, волна, LED-метры): De-Noiser, Gate, De-Esser, EQ (6 полос + АЧХ), Compressor, Limiter, Saturation, Chorus, Delay, Reverb, Gain — по своей цепочке на каждую дорожку
-- **Волновой редактор**: выделение, вырезать/копировать/вставить, тишина, фейды, нормализация, undo/redo
-- **Экспорт**: микс всех дорожек или соло-дорожка в WAV 16/24 бит; сухой микс без обработки
-- **Проекты**: сохранение/загрузка `.zvproj` (ZIP: WAV каждой дорожки + настройки цепочек)
-- **Настройки**: язык (RU/EN), темы, акцентный цвет, масштаб, высота дорожек, устройство вывода, горячие клавиши (переназначение и отключение)
+- **Multitrack timeline with items** (Reaper-style): every recording or import is a
+  separate clip — drag it, move it between tracks, split it at the cursor, glue everything back
+- **Punch-in recording**: select a region → ⏺ → re-record just that piece; older takes are trimmed, not deleted
+- **11 real-time plugins** with live displays (spectrum, waveform, LED meters):
+  De-Noiser · Gate · De-Esser · EQ (6 bands + response curve) · Compressor · Limiter ·
+  Saturation · Chorus · Delay · Reverb · Gain — a separate FX chain for every track
+- **Waveform editor**: selection, cut/copy/paste, silence, fades, normalize, undo/redo
+- **Export**: mix of all tracks or a solo track as WAV 16/24-bit, plus a dry mix without processing
+- **Projects**: save/load `.zvproj` — a plain ZIP with a WAV per item plus all chain settings
+- **Customization**: interface language (English/Русский), themes, accent color, UI scale,
+  track height, output device, output volume, fully remappable hotkeys
 
-## Быстрый старт
+## Built with
 
-### Веб-версия (нужен только Python 3 и браузер на Chromium)
+| Layer | Technology |
+|---|---|
+| Application logic | **Vanilla JavaScript** (ES modules) — no frameworks, no build step |
+| Real-time DSP | **Web Audio API + AudioWorklet** (gate, de-esser and de-noiser are custom worklets with own FFT) |
+| Visualization | **Canvas 2D** — waveform timeline, plugin displays, LED meters, spectrum |
+| UI | **HTML/CSS** — dark DAW theme, custom rotary knobs |
+| Web version server | **Python 3** standard library only (static no-cache server) |
+| Desktop shell | **Electron** — own window, microphone access without permission dialogs |
+| Project files | **ZIP written from scratch** (STORE method) + 24-bit **WAV** encoder — `project.json` + one WAV per item |
+| Persistence | **IndexedDB + File System Access API** — remembers your project folder |
+
+## Quick start
+
+### Web version — all platforms (Python 3 + any Chromium-based browser)
+
+| OS | Command |
+|---|---|
+| Linux / macOS | `./run.sh` |
+| Windows | double-click `run.bat` |
+
+Then open <http://localhost:8765>. Grant microphone access when asked.
+
+### Desktop version — own application window (Electron)
+
+| OS | One-time setup | Run |
+|---|---|---|
+| Linux / macOS | `./desktop/setup-desktop.sh` | `./desktop/launch.sh` |
+| Windows | `desktop\setup-desktop.bat` | `desktop\launch.bat` |
+
+The setup script downloads Electron (~120 MB) once. Desktop shell adds:
+a proper app window, microphone without permission dialogs, `.desktop` menu entry (Linux, see below).
+
+### Linux — add to the applications menu
 
 ```bash
-./run.sh          # сервер на http://localhost:8765 + открытие браузера
+./install-desktop-entry.sh
 ```
 
-### Десктоп-версия (Electron, окно приложения)
+Installs a `ZVoice Studio` launcher (works on GNOME, KDE, XFCE and any XDG-compliant desktop).
 
-```bash
-./desktop/setup-desktop.sh   # один раз: скачать Electron (~120 МБ)
-./desktop/launch.sh          # запуск окна
-```
+## Default hotkeys
 
-Микрофон в десктоп-версии включается без диалогов; в браузере — разрешите доступ.
-
-## Горячие клавиши (по умолчанию)
-
-| Действие | Клавиша |
+| Action | Key |
 |---|---|
 | Play / Stop | `Space` |
-| Record (в выбранную дорожку) | `R` |
-| Loop по выделению | `L` |
+| Record (into selected track) | `R` |
+| Loop selection | `L` |
 | Undo / Redo | `Ctrl+Z` / `Ctrl+Shift+Z` |
 | Cut / Copy / Paste | `Ctrl+X` / `C` / `V` |
-| Select all / Clear | `Ctrl+A` / `Esc` |
-| Удалить выделение | `Del` |
-| Курсор в начало | `Home` |
+| Select all / Clear selection | `Ctrl+A` / `Esc` |
+| Delete selection | `Del` |
+| Cursor to start | `Home` |
 
-Все клавиши переназначаются и отключаются в ⚙ → Hotkeys.
+Every hotkey can be remapped or disabled in ⚙ → Hotkeys.
 
-## Архитектура
+## Recording workflow (Reaper-style)
+
+1. `＋ Track` → press `R` → the take lands on the track as an **item** at the cursor
+2. Record again → the next item is placed right after, nothing is overwritten
+3. Messed up a word? Select it → `R` → punch-in replaces just that region
+4. Grab an item by its name bar to move it (even to another track)
+5. `Split` cuts an item at the cursor; `Glue` mixes all tracks into one
+6. Apply FX per track in the FX window; export the mix as WAV
+
+## Project format
+
+`.zvproj` is a standard ZIP you can open with any archiver:
 
 ```
-index.html            — разметка
-server.py / run.sh    — локальный no-cache сервер для веб-версии
-js/main.js            — приложение: дорожки, запись, проекты, хоткеи
-js/engine/            — микшер (цепочка на дорожку), клипы+undo, запись, WAV, ZIP, оффлайн-рендер
-js/plugins/           — 11 плагинов (FabFilter-стиль) + дисплеи (спектр/волна/история)
-js/ui/                — таймлайн с айтемами, FX-окно, кнобы, метры, настройки
-worklets/             — AudioWorklet DSP: гейт, де-эссер, шумодав, захват
-desktop/              — Electron-обёртка (окно + авто-доступ к микрофону)
+project.json      — track list: names, volume, pan, mute/solo, full FX chains, item positions
+track-01-*.wav    — raw 24-bit PCM per item — pull any sound out with any tool
 ```
 
-DSP работает на AudioWorklet — обработка в реальном времени без выпадений сэмплов.
-Проект не хранит аудио между запусками: сохраняйте проект (`.zvproj`) или экспортируйте WAV.
+Audio lives in memory while the app runs — save the project or export WAV before closing.
 
-## Лицензия
+## Architecture
 
-[GNU GPL v3](LICENSE) — код наш собственный, написан с нуля; Electron распространяется
-под своей лицензией (MIT).
+```
+index.html            — markup
+server.py / run.*     — optional no-cache static server for the web version
+js/main.js            — app: tracks, items, recording, projects, hotkeys, settings
+js/engine/            — mixer (FX chain per track), clip ops + undo, recorder,
+                        WAV codec, ZIP container, offline render
+js/plugins/           — 11 plugins (FabFilter-style panels) + displays (spectrum/waveform/history)
+js/ui/                — item timeline, FX window, knobs, meters, settings dialog
+worklets/             — AudioWorklet DSP: gate, de-esser, de-noiser, capture
+desktop/              — Electron shell (window + permission-free microphone)
+```
+
+## License
+
+[GNU GPL v3](LICENSE). All application code is written from scratch.
+Electron is distributed under its own MIT license.

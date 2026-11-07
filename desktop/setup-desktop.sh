@@ -1,33 +1,43 @@
 #!/usr/bin/env bash
-# Скачивает Electron (рантайм для десктоп-версии) и распаковывает в desktop/electron
-# Веб-версии это не нужно — ей хватает python3.
+# One-time Electron download for the desktop version (Linux + macOS)
 set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VER="${ELECTRON_VERSION:-37.2.0}"
+
+OS="$(uname -s)"
 ARCH="$(uname -m)"
+case "$OS" in
+  Linux)  EOS="linux" ;;
+  Darwin) EOS="darwin" ;;
+  *) echo "Unsupported OS: $OS (use setup-desktop.bat on Windows)"; exit 1 ;;
+esac
 case "$ARCH" in
-  x86_64) EARCH="x64" ;;
-  aarch64|arm64) EARCH="arm64" ;;
-  *) echo "Неизвестная архитектура: $ARCH"; exit 1 ;;
+  x86_64)         EARCH="x64" ;;
+  aarch64|arm64)  EARCH="arm64" ;;
+  *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-if [ -x "$DIR/electron/electron" ]; then
-  echo "Electron уже установлен: $DIR/electron"
+if [ "$EOS" = "darwin" ] && [ -x "$DIR/electron/Electron.app/Contents/MacOS/Electron" ]; then
+  echo "Electron is already installed: $DIR/electron"
+  exit 0
+fi
+if [ "$EOS" = "linux" ] && [ -x "$DIR/electron/electron" ]; then
+  echo "Electron is already installed: $DIR/electron"
   exit 0
 fi
 
-URL="https://github.com/electron/electron/releases/download/v$VER/electron-v$VER-linux-$EARCH.zip"
-MIRROR="https://npmmirror.com/mirrors/electron/v$VER/electron-v$VER-linux-$EARCH.zip"
-ZIP="$DIR/electron-v$VER.zip"
+URL="https://github.com/electron/electron/releases/download/v$VER/electron-v$VER-$EOS-$EARCH.zip"
+MIRROR="https://npmmirror.com/mirrors/electron/v$VER/electron-v$VER-$EOS-$EARCH.zip"
+ZIP="$DIR/electron-v$VER-$EOS-$EARCH.zip"
 
-echo "Скачиваю Electron v$VER ($EARCH)..."
+echo "Downloading Electron v$VER ($EOS-$EARCH)..."
 if ! curl -L --max-time 540 -o "$ZIP" "$URL"; then
-  echo "GitHub не ответил, пробую зеркало..."
+  echo "GitHub did not respond, trying the mirror..."
   curl -L --max-time 540 -o "$ZIP" "$MIRROR"
 fi
 
-echo "Распаковываю..."
+echo "Extracting..."
 unzip -q -o "$ZIP" -d "$DIR/electron"
 rm -f "$ZIP"
-chmod +x "$DIR/electron/electron"
-echo "Готово: $DIR/electron/electron"
+[ -f "$DIR/electron/electron" ] && chmod +x "$DIR/electron/electron"
+echo "Done: $DIR/electron"

@@ -6,6 +6,7 @@ import { getDef } from '../plugins/registry.js';
 // ?v= — сброс HTTP-кэша ворклетов при правках DSP
 export const WORKLET_FILES = [
   'worklets/capture.js?v=3', 'worklets/gate.js?v=3', 'worklets/deesser.js?v=3', 'worklets/denoise.js?v=3',
+  'worklets/ai-denoise.js?v=2',
 ];
 
 export class Engine {

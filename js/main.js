@@ -955,6 +955,8 @@ window.__zv = {
   remove: removeTrack,
   fx: (id) => rack.toggle(id),
   pin: () => rack.pinnedId,
+  engine: () => engine,
+  trackList: () => tracks,
   addClip(name, chans, sr) {
     const trk = newTrack(name);
     trk.items.push(makeItem(name, chans, sr, 0));

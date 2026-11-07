@@ -130,6 +130,7 @@ export function defineWorklet(spec) {
     build(ctx, state) {
       const node = new AudioWorkletNode(ctx, spec.proc, {
         numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
+        ...(spec.processorOptions ? { processorOptions: spec.processorOptions() } : {}),
       });
       const inst = {
         input: node, output: node,

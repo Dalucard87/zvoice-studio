@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZVoice Studio — free voice recorder with AI noise removal & real-time FX</title>
+<meta name="description" content="Free multitrack voice recorder with an AI noise remover (RNNoise) and real-time FX chains. Windows, macOS, Linux. No installation, no account, works fully offline.">
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #14171f; --panel2: #191d27; --line: #262b38;
+    --text: #e8ebf2; --dim: #8a93a6; --accent: #b18cff; --accent2: #ff9f43; --ok: #3ddc84;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+
+  header { border-bottom: 1px solid var(--line); background: rgba(11,13,18,.9); position: sticky; top: 0; backdrop-filter: blur(8px); z-index: 10; }
+  .nav { display: flex; align-items: center; gap: 20px; padding: 14px 0; }
+  .logo { font-weight: 800; font-size: 18px; letter-spacing: .3px; }
+  .logo b { color: var(--accent2); }
+  .nav a { color: var(--dim); font-size: 14px; }
+  .nav a:hover { color: var(--text); }
+  .nav .dl { margin-left: auto; background: var(--accent); color: #0b0d12; font-weight: 700; padding: 8px 18px; border-radius: 8px; font-size: 14px; }
+  .nav .dl:hover { filter: brightness(1.1); }
+
+  .hero { text-align: center; padding: 72px 0 40px; }
+  .hero h1 { font-size: 42px; line-height: 1.15; letter-spacing: -.5px; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.sub { color: var(--dim); font-size: 19px; max-width: 720px; margin: 18px auto 0; }
+  .badges { margin-top: 20px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .badges img { height: 22px; }
+
+  .shot { margin: 40px 0 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+  .shot img, .gif img { display: block; width: 100%; height: auto; }
+  .gif { margin: 24px auto 0; max-width: 820px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .gif .cap { text-align: center; color: var(--dim); font-size: 13px; padding: 8px; background: var(--panel); }
+
+  .cta { display: flex; gap: 12px; justify-content: center; margin: 36px 0 8px; flex-wrap: wrap; }
+  .btn { padding: 12px 26px; border-radius: 10px; font-weight: 700; font-size: 15px; }
+  .btn.pri { background: var(--accent); color: #0b0d12; }
+  .btn.sec { border: 1px solid var(--line); color: var(--text); background: var(--panel); }
+  .btn:hover { filter: brightness(1.12); }
+  .note { text-align: center; color: var(--dim); font-size: 13px; }
+
+  h2 { font-size: 28px; margin: 64px 0 8px; letter-spacing: -.3px; }
+  h2 .dot { color: var(--accent); }
+  .lead { color: var(--dim); margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .card b { display: block; margin-bottom: 6px; font-size: 15px; }
+  .card span { color: var(--dim); font-size: 14px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14.5px; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { background: var(--panel2); color: var(--dim); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.z { color: var(--ok); font-weight: 700; }
+  .scroll { overflow-x: auto; border-radius: 12px; }
+
+  .dlgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .os { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .os b { font-size: 15px; }
+  .os .k { color: var(--dim); font-size: 13px; margin-top: 6px; font-family: ui-monospace, monospace; }
+  .os a { display: inline-block; margin-top: 12px; font-weight: 700; }
+
+  .faq { max-width: 780px; }
+  .faq details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+  .faq summary { cursor: pointer; font-weight: 600; }
+  .faq p { color: var(--dim); margin-top: 8px; font-size: 14.5px; }
+
+  footer { border-top: 1px solid var(--line); margin-top: 72px; padding: 28px 0 40px; color: var(--dim); font-size: 13.5px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="logo">Z<b>Voice</b> Studio</div>
+    <a href="#features">Features</a>
+    <a href="#compare">Compare</a>
+    <a href="#download">Download</a>
+    <a href="https://github.com/Dalucard87/zvoice-studio">GitHub</a>
+    <a class="dl" href="#download">Download</a>
+  </div>
+</header>
+
+<section class="wrap hero">
+  <h1>Record <em>clean voice</em> in seconds.<br>No installation. No account. No noise.</h1>
+  <p class="sub">A free multitrack voice recorder with an AI noise remover and real-time FX chains —
+  a Reaper-style workflow with FabFilter-style panels. Everything runs locally.</p>
+  <div class="badges">
+    <img alt="release" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2FDalucard87%2Fzvoice-studio%2Freleases%2Flatest&query=%24.name&label=release&color=b18cff">
+    <img alt="license" src="https://img.shields.io/github/license/Dalucard87/zvoice-studio?color=3ddc84">
+    <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-ff9f43">
+  </div>
+  <div class="shot"><img src="screenshot.png" alt="ZVoice Studio — multitrack timeline and AI De-Noise plugin"></div>
+  <div class="gif">
+    <img src="demo.gif" alt="AI De-Noise removing fan noise in real time — bypass toggled">
+    <div class="cap">AI De-Noise (RNNoise neural network) — bypass toggled: the fan noise comes back and vanishes again</div>
+  </div>
+  <div class="cta">
+    <a class="btn pri" href="#download">Download for free</a>
+    <a class="btn sec" href="https://github.com/Dalucard87/zvoice-studio#readme">Read the docs</a>
+  </div>
+  <div class="note">Windows · macOS (Apple Silicon &amp; Intel) · Linux — GPL v3</div>
+</section>
+
+<section class="wrap" id="features">
+  <h2>Everything a voice session needs<span class="dot">.</span></h2>
+  <p class="lead">One window from raw take to finished export.</p>
+  <div class="grid">
+    <div class="card"><b>🤖 AI De-Noise</b><span>RNNoise neural network compiled to WebAssembly. Fans, hum, street — gone with one knob. No noise profile needed.</span></div>
+    <div class="card"><b>🎚 12 real-time plugins</b><span>De-Noiser, Gate, De-Esser, EQ, Compressor, Limiter, Saturation, Chorus, Delay, Reverb, Gain — live spectrum and LED meters.</span></div>
+    <div class="card"><b>🎧 Hear the chain while recording</b><span>FX run in real time — monitor your processed voice as you speak.</span></div>
+    <div class="card"><b>✂ Reaper-style items</b><span>Every take is a clip: drag it, move across tracks, split at the cursor, glue back. Punch-in re-records just the broken word.</span></div>
+    <div class="card"><b>💾 Open project format</b><span>A .zvproj is a plain ZIP — a WAV file per take plus a JSON with all settings. Your audio stays yours.</span></div>
+    <div class="card"><b>🔌 Fully offline</b><span>No accounts, no cloud, no telemetry. The neural network runs inside the app.</span></div>
+  </div>
+</section>
+
+<section class="wrap" id="compare">
+  <h2>Why not just Audacity?<span class="dot">.</span></h2>
+  <p class="lead">Different tools, different trade-offs — here's where ZVoice fits.</p>
+  <div class="scroll">
+  <table>
+    <tr><th></th><th>ZVoice Studio</th><th>Audacity</th><th>Online AI tools</th></tr>
+    <tr><td>Setup</td><td class="z">unpack &amp; run</td><td>installer</td><td>account + upload</td></tr>
+    <tr><td>AI noise removal</td><td class="z">✓ one knob</td><td>✗</td><td>✓ (cloud)</td></tr>
+    <tr><td>Real-time FX while recording</td><td class="z">✓</td><td>✗</td><td>✓</td></tr>
+    <tr><td>Punch-in &amp; items</td><td class="z">✓</td><td>✗</td><td>✗</td></tr>
+    <tr><td>Per-track FX chains</td><td class="z">✓</td><td>✗</td><td>✗</td></tr>
+    <tr><td>Privacy (audio never leaves the machine)</td><td class="z">✓ 100%</td><td class="z">✓</td><td>✗</td></tr>
+  </table>
+  </div>
+</section>
+
+<section class="wrap" id="download">
+  <h2>Download<span class="dot">.</span></h2>
+  <p class="lead">Grab the latest bundle from
+  <a href="https://github.com/Dalucard87/zvoice-studio/releases/latest">GitHub Releases</a> —
+  Electron and the app are packed inside. Unpack and run:</p>
+  <div class="dlgrid">
+    <div class="os"><b>🪟 Windows 64-bit</b><div class="k">ZVoice-Studio-*-win64.zip</div><a href="https://github.com/Dalucard87/zvoice-studio/releases/latest">Download →</a><div class="k">run launch.bat</div></div>
+    <div class="os"><b>🍎 macOS Apple Silicon</b><div class="k">ZVoice-Studio-*-macos-arm64.zip</div><a href="https://github.com/Dalucard87/zvoice-studio/releases/latest">Download →</a><div class="k">chmod +x launch.sh && ./launch.sh</div></div>
+    <div class="os"><b>🍎 macOS Intel</b><div class="k">ZVoice-Studio-*-macos-x64.zip</div><a href="https://github.com/Dalucard87/zvoice-studio/releases/latest">Download →</a><div class="k">chmod +x launch.sh && ./launch.sh</div></div>
+    <div class="os"><b>🐧 Linux 64-bit</b><div class="k">ZVoice-Studio-*-linux-x64.zip</div><a href="https://github.com/Dalucard87/zvoice-studio/releases/latest">Download →</a><div class="k">chmod +x launch.sh && ./launch.sh</div></div>
+  </div>
+  <p class="note" style="margin-top:14px">macOS may warn about an unsigned app the first time — run <code>xattr -cr ZVoice-Studio</code> once, or right-click → Open.</p>
+</section>
+
+<section class="wrap faq">
+  <h2>FAQ<span class="dot">.</span></h2>
+  <details><summary>Is my audio uploaded anywhere?</summary><p>No. Everything — including the AI noise remover — runs locally in the app. The neural network is compiled to WebAssembly and executes on your machine.</p></details>
+  <details><summary>What is RNNoise?</summary><p>A compact recurrent neural network for speech noise suppression by Xiph.Org (the people behind Opus/Vorbis). ZVoice compiles it to WebAssembly and wraps it with auto gain staging so it works at any input level.</p></details>
+  <details><summary>Browser or desktop version?</summary><p>Same application. The desktop version adds a native window, microphone access without permission prompts and a menu entry (Linux).</p></details>
+  <details><summary>Is it really free?</summary><p>Yes — GPL v3 open source. Use it, modify it, share it.</p></details>
+</section>
+
+<footer>
+  <div class="wrap">
+    ZVoice Studio — GPL v3 · built with vanilla JavaScript, Web Audio API and Electron ·
+    <a href="https://github.com/Dalucard87/zvoice-studio">source on GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

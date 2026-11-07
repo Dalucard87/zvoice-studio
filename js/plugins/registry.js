@@ -1,4 +1,5 @@
 // Реестр плагинов
+import { AiDenoisePlugin } from './aidenoise.js';
 import { DenoisePlugin } from './denoise.js';
 import { GatePlugin } from './gate.js';
 import { DeEsserPlugin } from './deesser.js';
@@ -12,6 +13,7 @@ import { DelayPlugin } from './delay.js';
 import { ReverbPlugin } from './reverb.js';
 
 export const PLUGIN_LIST = [
+  AiDenoisePlugin,
   DenoisePlugin, GatePlugin, DeEsserPlugin,
   EqPlugin, SaturationPlugin,
   CompPlugin, LimiterPlugin, GainPlugin,

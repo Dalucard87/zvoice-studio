@@ -6,7 +6,7 @@ import { proShell } from './displays.js';
 const params = [
   { id: 'strength', name: 'Сила', nameEn: 'Strength', min: 0, max: 4, def: 2.2, fmt: 'x' },
   { id: 'floorDb', name: 'Пол давки', nameEn: 'Floor', min: -60, max: -10, def: -28, fmt: 'db' },
-  { id: 'smooth', name: 'Сглаживание', nameEn: 'Smoothing', min: 0, max: 0.9, def: 0.35, fmt: 'pct' },
+  { id: 'smooth', name: 'Сглаживание', nameEn: 'Smoothing', min: 0, max: 0.9, def: 0.35, fmt: (v) => Math.round(v * 100) + ' %' },
   { id: 'bypass', name: 'Байпас', nameEn: 'Bypass', kind: 'toggle', def: 0 },
 ];
 

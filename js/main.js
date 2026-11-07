@@ -261,9 +261,14 @@ function playFrom(fromSample) {
       const src = engine.ctx.createBufferSource();
       src.buffer = getBuffer(item);
       if (useLoop) {
+        // границы цикла — в координатах БУФЕРА айтема (sel — глобальное время):
+        // пересекаем выделение с айтемом и вычитаем item.start
+        const lo = Math.max(sel.a, item.start);
+        const hi = Math.min(sel.b, item.start + item.len);
+        if (hi - lo < item.sr * 0.02) continue; // выделение не задевает айтем
         src.loop = true;
-        src.loopStart = sel.a / item.sr;
-        src.loopEnd = sel.b / item.sr;
+        src.loopStart = (lo - item.start) / item.sr;
+        src.loopEnd = (hi - item.start) / item.sr;
         src.start(0, Math.max(0, Math.max(sel.a, start) - item.start) / item.sr);
       } else {
         const when = item.start >= start ? (item.start - start) / item.sr : 0;
@@ -957,6 +962,7 @@ window.__zv = {
   pin: () => rack.pinnedId,
   engine: () => engine,
   trackList: () => tracks,
+  timeline: () => timeline,
   addClip(name, chans, sr) {
     const trk = newTrack(name);
     trk.items.push(makeItem(name, chans, sr, 0));
